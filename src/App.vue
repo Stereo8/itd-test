@@ -1,188 +1,3 @@
-<script setup lang="ts">
-import {
-  ref,
-  type Ref,
-  TransitionGroup,
-  Transition,
-  reactive,
-  computed,
-  onMounted,
-  watch,
-  type ComputedRef,
-} from "vue";
-import { employees as arr } from "./employees";
-import type Employee from "@/types/employee";
-import AddEmployeePopup from "./components/Popup.vue";
-import Popup from "./components/Popup.vue";
-
-const employees: Ref<Array<Employee>> = ref(arr);
-const popup = ref(false);
-const editing = ref(false);
-
-const pages: Ref<Array<Array<Employee>>> = ref([]);
-const pageSize = ref(20);
-const pageNum: ComputedRef<number> = computed(() =>
-  Math.ceil(employees.value.length / pageSize.value)
-);
-const currentPage = ref(0);
-
-let employeeToEdit: Employee;
-
-let editedEmployee = reactive({
-  name: "",
-  position: "",
-  office: "",
-  age: "",
-  startDate: "",
-  salary: "",
-});
-
-let sortStates = reactive({
-  name: "",
-  position: "",
-  office: "",
-  age: "",
-  startDate: "",
-  salary: "",
-});
-
-function sortAsc(column: keyof Employee) {
-  // if (column === "salary") {
-  //   employees.value = employees.value.map((e) => {
-  //     e.salary = e.salary.replace(/\$*,*/, "");
-  //     console.log(e.salary);
-  //     return e;
-  //   });
-  // }
-
-  employees.value.sort((e1: Employee, e2: Employee) => {
-    const prvi = e1[column].toLowerCase();
-    const drugi = e2[column].toLowerCase();
-
-    if (prvi > drugi) {
-      return 1;
-    } else {
-      return -1;
-    }
-  });
-}
-
-function sortDesc(column: keyof Employee) {
-  employees.value.sort((e1: Employee, e2: Employee) => {
-    const prvi = e1[column].toLowerCase();
-    const drugi = e2[column].toLowerCase();
-
-    if (prvi > drugi) {
-      return -1;
-    } else {
-      return 1;
-    }
-  });
-}
-
-function headerClick(column: keyof Employee) {
-  if (sortStates[column] === "" || sortStates[column] === "▼") {
-    Object.assign(sortStates, {
-      name: "",
-      position: "",
-      office: "",
-      age: "",
-      startDate: "",
-      salary: "",
-    });
-    sortStates[column] = "▲";
-    sortAsc(column);
-  } else if (sortStates[column] === "▲") {
-    sortStates[column] = "▼";
-    sortDesc(column);
-  }
-  paginate();
-}
-
-function addEmployee() {
-  popup.value = false;
-  const newEmployee: Employee = {
-    name: editedEmployee.name,
-    position: editedEmployee.position,
-    office: editedEmployee.office,
-    age: editedEmployee.age,
-    startDate: editedEmployee.startDate,
-    salary: editedEmployee.salary,
-  };
-
-  employees.value.push(newEmployee);
-
-  resort();
-  paginate();
-}
-
-function removeEmployee(employee: Employee) {
-  employees.value = employees.value.filter((e) => {
-    return e !== employee;
-  });
-  paginate();
-}
-
-function clickEdit(employee: Employee) {
-  Object.assign(editedEmployee, employee);
-  employeeToEdit = employee;
-  editing.value = true;
-  popup.value = true;
-}
-
-function editEmployee() {
-  popup.value = false;
-  const i = employees.value.findIndex((e) => e === employeeToEdit);
-  console.log(editedEmployee);
-  Object.assign(employees.value[i], editedEmployee);
-  clearInputs();
-  resort();
-  editing.value = false;
-}
-
-function clearInputs() {
-  Object.assign(editedEmployee, {
-    name: "",
-    position: "",
-    office: "",
-    age: "",
-    startDate: "",
-    salary: "",
-  });
-}
-
-function resort() {
-  for (const prop in sortStates) {
-    const col = prop as keyof Employee;
-    if (sortStates[col] === "▲") {
-      sortAsc(col);
-    } else if (sortStates[col] === "▼") {
-      sortDesc(col);
-    }
-  }
-}
-
-function paginate() {
-  pages.value = [];
-  for (let i = 0; i < pageNum.value; i++) {
-    let start: number = i * pageSize.value;
-    let end: number = i * pageSize.value + +pageSize.value;
-    const newPage = employees.value.slice(start, end);
-    pages.value.push(newPage);
-  }
-}
-
-onMounted(() => {
-  paginate();
-});
-
-watch(pageSize, () => {
-  if (pageSize.value > 2) paginate();
-  if (currentPage.value > pageNum.value - 1)
-    currentPage.value = pageNum.value - 1;
-});
-</script>
-
 <template>
   <Transition name="popup">
     <Popup
@@ -264,6 +79,188 @@ watch(pageSize, () => {
   </table>
 </template>
 
+<script setup lang="ts">
+import {
+  ref,
+  type Ref,
+  TransitionGroup,
+  Transition,
+  reactive,
+  computed,
+  onMounted,
+  watch,
+  type ComputedRef,
+} from "vue";
+import { employees as arr } from "./employees";
+import type Employee from "@/types/employee";
+import AddEmployeePopup from "./components/Popup.vue";
+import Popup from "./components/Popup.vue";
+
+const employees: Ref<Array<Employee>> = ref(arr);
+const popup = ref(false);
+const editing = ref(false);
+
+const pages: Ref<Array<Array<Employee>>> = ref([]);
+const pageSize = ref(20);
+const pageNum: ComputedRef<number> = computed(() =>
+  Math.ceil(employees.value.length / pageSize.value)
+);
+const currentPage = ref(0);
+
+let employeeToEdit: Employee;
+
+let editedEmployee = reactive({
+  name: "",
+  position: "",
+  office: "",
+  age: "",
+  startDate: "",
+  salary: "",
+});
+
+let sortStates = reactive({
+  name: "",
+  position: "",
+  office: "",
+  age: "",
+  startDate: "",
+  salary: "",
+});
+
+function sortAsc(column: keyof Employee) {
+  employees.value.sort((e1: Employee, e2: Employee) => {
+    let prvi, drugi;
+    if (column === "salary") {
+      prvi = parseInt(e1.salary.replaceAll("$", "").replaceAll(",", ""));
+      drugi = parseInt(e2.salary.replaceAll("$", "").replaceAll(",", ""));
+    } else {
+      prvi = e1[column].toLowerCase();
+      drugi = e2[column].toLowerCase();
+    }
+
+    return prvi > drugi ? 1 : -1;
+  });
+}
+
+function sortDesc(column: keyof Employee) {
+  employees.value.sort((e1: Employee, e2: Employee) => {
+    let prvi, drugi;
+    if (column === "salary") {
+      prvi = parseInt(e1.salary.replaceAll("$", "").replaceAll(",", ""));
+      drugi = parseInt(e2.salary.replaceAll("$", "").replaceAll(",", ""));
+    } else {
+      prvi = e1[column].toLowerCase();
+      drugi = e2[column].toLowerCase();
+    }
+
+    return prvi > drugi ? -1 : 1;
+  });
+}
+
+function headerClick(column: keyof Employee) {
+  if (sortStates[column] === "" || sortStates[column] === "▼") {
+    Object.assign(sortStates, {
+      name: "",
+      position: "",
+      office: "",
+      age: "",
+      startDate: "",
+      salary: "",
+    });
+    sortStates[column] = "▲";
+    sortAsc(column);
+  } else if (sortStates[column] === "▲") {
+    sortStates[column] = "▼";
+    sortDesc(column);
+  }
+  paginate();
+}
+
+function addEmployee() {
+  popup.value = false;
+  const newEmployee: Employee = {
+    name: editedEmployee.name,
+    position: editedEmployee.position,
+    office: editedEmployee.office,
+    age: editedEmployee.age,
+    startDate: editedEmployee.startDate,
+    salary: editedEmployee.salary,
+  };
+
+  employees.value.push(newEmployee);
+
+  resort();
+  paginate();
+}
+
+function removeEmployee(employee: Employee) {
+  employees.value = employees.value.filter((e) => {
+    return e !== employee;
+  });
+  paginate();
+}
+
+function clickEdit(employee: Employee) {
+  Object.assign(editedEmployee, employee);
+  employeeToEdit = employee;
+  editing.value = true;
+  popup.value = true;
+}
+
+function editEmployee() {
+  popup.value = false;
+  const i = employees.value.findIndex((e) => e === employeeToEdit);
+  console.log(editedEmployee);
+  Object.assign(employees.value[i], editedEmployee);
+  clearInputs();
+  resort();
+  paginate();
+  editing.value = false;
+}
+
+function clearInputs() {
+  Object.assign(editedEmployee, {
+    name: "",
+    position: "",
+    office: "",
+    age: "",
+    startDate: "",
+    salary: "",
+  });
+}
+
+function resort() {
+  for (const prop in sortStates) {
+    const col = prop as keyof Employee;
+    if (sortStates[col] === "▲") {
+      sortAsc(col);
+    } else if (sortStates[col] === "▼") {
+      sortDesc(col);
+    }
+  }
+}
+
+function paginate() {
+  pages.value = [];
+  for (let i = 0; i < pageNum.value; i++) {
+    let start: number = i * pageSize.value;
+    let end: number = i * pageSize.value + +pageSize.value;
+    const newPage = employees.value.slice(start, end);
+    pages.value.push(newPage);
+  }
+  if (currentPage.value > pageNum.value - 1)
+    currentPage.value = pageNum.value - 1;
+}
+
+onMounted(() => {
+  paginate();
+});
+
+watch(pageSize, () => {
+  if (pageSize.value > 2) paginate();
+});
+</script>
+
 <style>
 @import "./assets/base.css";
 
@@ -282,6 +279,7 @@ body {
 
 table {
   border-collapse: collapse;
+  width: 100%;
 }
 
 th {
